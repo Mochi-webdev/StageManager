@@ -425,6 +425,9 @@
 </div>
 
 <script>
+ (async () => {
+  await loadState();
+})();
 const SK = 'sm_v3';
 let S = {show:{name:'',venue:'',date:''},artists:[],slots:[],msgs:[],accounts:[],shifts:[]};
 let currentUser = null;
@@ -433,8 +436,20 @@ let currentPage = 'dash';
 let unreadMsgs = 0;
 let lastMsgCount = 0;
 
-function saveState() { try { localStorage.setItem(SK, JSON.stringify(S)); } catch(e){} }
-function loadState() { try { const d=localStorage.getItem(SK); if(d) S=JSON.parse(d); } catch(e){} }
+async function loadState() {
+  const res = await fetch("/api/state");
+  S = await res.json();
+}
+
+async function saveState() {
+  await fetch("/api/state", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(S)
+  });
+}
 
 loadState();
 
