@@ -1,0 +1,17 @@
+{
+  "show": {},
+  "artists": [],
+  "slots": [],
+  "msgs": [],
+  "accounts": [
+    {
+      "id": "admin",
+      "username": "admin",
+      "password": "admin",
+      "display": "Administrator",
+      "role": "Admin",
+      "level": "admin"
+    }
+  ],
+  "shifts": []
+}
