@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stage Manager</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #F5F5F7;
+    --surface: #FFFFFF;
+    --surface2: #F0F0F2;
+    --border: #E2E2E8;
+    --border2: #C8C8D4;
+    --text: #111118;
+    --text2: #5A5A72;
+    --text3: #9090A8;
+    --accent: #3B55E6;
+    --accent-bg: #EEF1FD;
+    --accent-text: #2340C8;
+    --green: #18A469;
+    --green-bg: #E6F7EF;
+    --green-text: #0F7A4E;
+    --amber: #D97A0A;
+    --amber-bg: #FEF3DC;
+    --amber-text: #A85D00;
+    --red: #D93535;
+    --red-bg: #FEECEC;
+    --red-text: #A82020;
+    --purple: #7B3FE4;
+    --purple-bg: #F0EAFD;
+    --purple-text: #5B28B8;
+    --mono: 'SF Mono', 'Fira Mono', 'Consolas', monospace;
+    --r-sm: 6px;
+    --r-md: 10px;
+    --r-lg: 14px;
+    --r-xl: 18px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.06);
+  }
+  html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+  /* Layout */
+  .app { display: flex; height: 100vh; overflow: hidden; }
+  .sidebar { width: 220px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+  .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .topbar { height: 52px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 12px; flex-shrink: 0; }
+  .content { flex: 1; overflow-y: auto; padding: 20px; }
+
+  /* Sidebar */
+  .sb-brand { padding: 16px 16px 12px; border-bottom: 1px solid var(--border); }
+  .sb-brand-row { display: flex; align-items: center; gap: 9px; }
+  .sb-icon { width: 30px; height: 30px; background: var(--accent); border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; color: #fff; }
+  .sb-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .sb-venue { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .sb-nav { flex: 1; padding: 8px; }
+  .nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: var(--r-md); cursor: pointer; color: var(--text2); font-size: 13px; border: none; background: transparent; width: 100%; text-align: left; transition: background 0.12s, color 0.12s; position: relative; }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: var(--accent-bg); color: var(--accent-text); font-weight: 500; }
+  .nav-item i { font-size: 16px; flex-shrink: 0; }
+  .nav-badge { margin-left: auto; background: var(--red-bg); color: var(--red-text); font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: 600; }
+  .sb-bottom { padding: 8px; border-top: 1px solid var(--border); }
+  .user-pill { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--r-md); background: var(--surface2); }
+  .user-av { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; background: var(--accent-bg); color: var(--accent-text); flex-shrink: 0; }
+  .user-name { font-size: 12px; font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .user-role { font-size: 10px; color: var(--text3); }
+  .logout-btn { background: transparent; border: none; cursor: pointer; color: var(--text3); padding: 2px; border-radius: 4px; }
+  .logout-btn:hover { color: var(--red); }
+
+  /* Topbar */
+  .topbar-title { font-size: 15px; font-weight: 600; flex: 1; }
+  .clock-display { font-family: var(--mono); font-size: 13px; color: var(--text2); background: var(--surface2); padding: 4px 10px; border-radius: var(--r-sm); }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border-radius: var(--r-md); border: 1px solid var(--border2); background: var(--surface); color: var(--text); font-size: 13px; cursor: pointer; transition: background 0.12s; font-family: inherit; }
+  .btn:hover { background: var(--surface2); }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-primary:hover { background: #2d46cc; }
+  .btn-sm { padding: 5px 9px; font-size: 12px; border-radius: var(--r-sm); }
+  .btn-danger { border-color: #f5c0c0; color: var(--red-text); }
+  .btn-danger:hover { background: var(--red-bg); }
+  .btn-ghost { border-color: transparent; background: transparent; }
+  .btn-ghost:hover { background: var(--surface2); }
+
+  /* Cards / Sections */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px 18px; }
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 14px 16px; }
+  .stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+  .stat-value { font-size: 24px; font-weight: 600; color: var(--text); }
+  .stat-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .sec-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .sec-title { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* Badges / Pills */
+  .pill { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .pill-green { background: var(--green-bg); color: var(--green-text); }
+  .pill-amber { background: var(--amber-bg); color: var(--amber-text); }
+  .pill-red { background: var(--red-bg); color: var(--red-text); }
+  .pill-gray { background: var(--surface2); color: var(--text3); }
+  .pill-blue { background: var(--accent-bg); color: var(--accent-text); }
+  .pill-purple { background: var(--purple-bg); color: var(--purple-text); }
+
+  /* Next block */
+  .next-block { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--r-lg); padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 14px; }
+  .next-icon { width: 38px; height: 38px; background: var(--accent-bg); border-radius: var(--r-md); display: flex; align-items: center; justify-content: center; color: var(--accent); flex-shrink: 0; font-size: 18px; }
+  .next-label { font-size: 10px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
+  .next-title { font-size: 15px; font-weight: 600; }
+  .next-meta { font-size: 12px; color: var(--text2); margin-top: 2px; font-family: var(--mono); }
+
+  /* Artist row */
+  .a-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); margin-bottom: 6px; }
+  .a-row:last-child { margin-bottom: 0; }
+  .av { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .av-green { background: var(--green-bg); color: var(--green-text); }
+  .av-amber { background: var(--amber-bg); color: var(--amber-text); }
+  .av-red { background: var(--red-bg); color: var(--red-text); }
+  .av-gray { background: var(--surface2); color: var(--text3); }
+  .av-blue { background: var(--accent-bg); color: var(--accent-text); }
+  .a-info { flex: 1; min-width: 0; }
+  .a-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .a-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .check-toggle { width: 28px; height: 28px; border-radius: var(--r-sm); border: 1px solid var(--border2); background: var(--surface); color: var(--text3); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; font-size: 14px; }
+  .check-toggle.on { background: var(--green-bg); border-color: var(--green); color: var(--green-text); }
+  .ci-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: 12px 14px; display: flex; align-items: center; gap: 11px; margin-bottom: 7px; transition: border-color 0.15s; }
+  .ci-item.checked { border-color: var(--green); }
+  .ci-time { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+
+  /* Runsheet */
+  .rs-row { display: flex; gap: 0; align-items: stretch; }
+  .rs-time { width: 52px; text-align: right; padding-top: 15px; font-family: var(--mono); font-size: 11px; color: var(--text3); padding-right: 10px; flex-shrink: 0; }
+  .rs-gutter { display: flex; flex-direction: column; align-items: center; width: 20px; flex-shrink: 0; }
+  .rs-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 16px; flex-shrink: 0; }
+  .rs-line { flex: 1; width: 1.5px; background: var(--border); margin-top: 3px; }
+  .rs-card { flex: 1; margin: 4px 0 4px 12px; padding: 11px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); cursor: pointer; transition: border-color 0.15s; }
+  .rs-card:hover { border-color: var(--border2); }
+  .rs-card.rs-active { border-color: var(--accent); background: var(--accent-bg); }
+  .rs-card.rs-done { opacity: 0.4; }
+  .rs-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .rs-title { font-size: 13px; font-weight: 500; }
+  .rs-dur { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+  .rs-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+  .rs-tag { font-size: 10px; padding: 2px 7px; border-radius: 20px; }
+  .tag-probe { background: var(--purple-bg); color: var(--purple-text); }
+  .tag-show { background: var(--green-bg); color: var(--green-text); }
+  .tag-technik { background: var(--amber-bg); color: var(--amber-text); }
+  .tag-pause { background: var(--surface2); color: var(--text3); }
+
+  /* Search */
+  .search-row { display: flex; gap: 8px; margin-bottom: 14px; align-items: center; }
+  .search-row input { flex: 1; padding: 8px 12px; border-radius: var(--r-md); border: 1px solid var(--border2); background: var(--surface); color: var(--text); font-size: 13px; outline: none; font-family: inherit; }
+  .search-row input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,85,230,0.1); }
+
+  /* Chat */
+  .chat-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; }
+  .chat-head { padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .chat-online { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--green-text); }
+  .chat-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+  .chat-msgs { min-height: 260px; max-height: 340px; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .chat-msg { display: flex; flex-direction: column; gap: 2px; }
+  .chat-msg-head { display: flex; align-items: baseline; gap: 7px; }
+  .chat-msg-sender { font-size: 12px; font-weight: 600; }
+  .chat-msg-time { font-size: 10px; color: var(--text3); font-family: var(--mono); }
+  .chat-msg-text { font-size: 13px; color: var(--text2); line-height: 1.5; }
+  .chat-msg.urgent .chat-msg-sender, .chat-msg.urgent .chat-msg-text { color: var(--red-text); }
+  .chat-msg.urgent .chat-msg-text { background: var(--red-bg); padding: 5px 8px; border-radius: var(--r-sm); }
+  .chat-msg.system { background: var(--accent-bg); padding: 6px 10px; border-radius: var(--r-sm); }
+  .chat-msg.system .chat-msg-text { font-size: 12px; color: var(--accent-text); }
+  .chat-name-row { padding: 6px 12px 0; display: flex; align-items: center; gap: 7px; }
+  .chat-name-row input { border: none; background: transparent; font-size: 12px; color: var(--text2); outline: none; width: 150px; font-family: inherit; }
+  .chat-input-row { padding: 10px 12px; border-top: 1px solid var(--border); display: flex; gap: 8px; align-items: center; }
+  .chat-input-row input { flex: 1; padding: 8px 11px; border: 1px solid var(--border2); border-radius: var(--r-md); background: var(--surface2); color: var(--text); font-size: 13px; outline: none; font-family: inherit; }
+  .chat-input-row input:focus { border-color: var(--accent); background: var(--surface); }
+  .urgency-btn { padding: 7px 10px; border-radius: var(--r-md); border: 1px solid #f5c0c0; background: transparent; color: var(--red-text); cursor: pointer; font-size: 13px; }
+  .urgency-btn:hover { background: var(--red-bg); }
+
+  /* Personal plan */
+  .person-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 0; overflow: hidden; margin-bottom: 10px; }
+  .person-card-head { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+  .person-card-body { padding: 12px 16px; }
+  .shift-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--r-sm); background: var(--surface2); margin-bottom: 6px; }
+  .shift-time { font-family: var(--mono); font-size: 11px; color: var(--text3); width: 90px; flex-shrink: 0; }
+  .shift-title { font-size: 13px; flex: 1; }
+  .shift-type { font-size: 11px; }
+
+  /* Accounts */
+  .account-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 14px 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
+  .account-info { flex: 1; min-width: 0; }
+  .account-name { font-size: 14px; font-weight: 500; }
+  .account-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+
+  /* Modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 100; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-xl); padding: 22px; width: 340px; box-shadow: 0 8px 32px rgba(0,0,0,0.14); max-height: 90vh; overflow-y: auto; }
+  .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 18px; }
+  .form-row { margin-bottom: 12px; }
+  .form-label { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 5px; display: block; }
+  .form-row input, .form-row select, .form-row textarea { width: 100%; padding: 8px 11px; border: 1px solid var(--border2); border-radius: var(--r-md); background: var(--surface2); color: var(--text); font-size: 13px; outline: none; font-family: inherit; }
+  .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,85,230,0.1); background: var(--surface); }
+  .form-row textarea { resize: vertical; min-height: 60px; }
+  .form-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .modal-btns { display: flex; gap: 8px; margin-top: 18px; }
+  .modal-btns .btn { flex: 1; justify-content: center; }
+
+  /* Login screen */
+  .login-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 200; }
+  .login-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-xl); padding: 32px; width: 340px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); }
+  .login-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+  .login-icon { width: 36px; height: 36px; background: var(--accent); border-radius: var(--r-md); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; }
+  .login-title { font-size: 17px; font-weight: 700; }
+  .login-sub { font-size: 12px; color: var(--text3); margin-top: 1px; }
+  .error-msg { background: var(--red-bg); color: var(--red-text); padding: 8px 12px; border-radius: var(--r-md); font-size: 13px; margin-bottom: 12px; }
+
+  /* Empty state */
+  .empty { text-align: center; padding: 40px 20px; color: var(--text3); }
+  .empty i { font-size: 36px; display: block; margin-bottom: 8px; opacity: 0.35; }
+  .empty p { font-size: 13px; }
+  .add-btn { width: 100%; padding: 10px; border: 1.5px dashed var(--border2); border-radius: var(--r-md); background: transparent; color: var(--text3); font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 10px; transition: all 0.15s; font-family: inherit; }
+  .add-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+
+  /* Helpers */
+  .hidden { display: none !important; }
+  .divider { height: 1px; background: var(--border); margin: 12px 0; }
+  .tag-dot-probe { background: #7B3FE4; }
+  .tag-dot-show { background: #18A469; }
+  .tag-dot-technik { background: #D97A0A; }
+  .tag-dot-pause { background: #9090A8; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="login-brand">
+      <div class="login-icon"><i class="ti ti-bolt"></i></div>
+      <div>
+        <div class="login-title">Stage Manager</div>
+        <div class="login-sub">Technische Veranstaltung</div>
+      </div>
+    </div>
+    <div id="login-error" class="error-msg hidden"></div>
+    <div class="form-row"><label class="form-label">Benutzername</label><input type="text" id="login-user" placeholder="z.B. admin" autocomplete="username"></div>
+    <div class="form-row"><label class="form-label">Passwort</label><input type="password" id="login-pass" placeholder="••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:6px" onclick="doLogin()"><i class="ti ti-login"></i> Anmelden</button>
+    <p style="font-size:11px;color:var(--text3);margin-top:14px;text-align:center">Standard-Admin: <b>admin</b> / <b>admin</b></p>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app hidden" id="app">
+  <div class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-brand-row">
+        <div class="sb-icon"><i class="ti ti-bolt" style="font-size:15px"></i></div>
+        <div>
+          <div class="sb-name" id="sb-show-name">Stage Manager</div>
+          <div class="sb-venue" id="sb-show-venue">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="sb-nav">
+      <button class="nav-item active" onclick="nav('dash',this)"><i class="ti ti-layout-dashboard"></i> Übersicht</button>
+      <button class="nav-item" onclick="nav('checkin',this)"><i class="ti ti-user-check"></i> Check-in</button>
+      <button class="nav-item" onclick="nav('runsheet',this)"><i class="ti ti-list"></i> Ablaufplan</button>
+      <button class="nav-item" onclick="nav('myplan',this)" id="nav-myplan"><i class="ti ti-calendar-user"></i> Mein Plan</button>
+      <button class="nav-item" onclick="nav('crew',this)"><i class="ti ti-message-2"></i> Crew-Chat <span class="nav-badge hidden" id="nav-badge">0</span></button>
+      <button class="nav-item" onclick="nav('personal',this)" id="nav-personal"><i class="ti ti-users-group"></i> Personalplan</button>
+      <button class="nav-item" onclick="nav('accounts',this)" id="nav-accounts"><i class="ti ti-shield-lock"></i> Accounts</button>
+      <div class="divider"></div>
+      <button class="nav-item" onclick="openModal('modal-setup')"><i class="ti ti-settings"></i> Einstellungen</button>
+    </div>
+    <div class="sb-bottom">
+      <div class="user-pill">
+        <div class="av av-blue" id="user-av-sb">AD</div>
+        <div style="flex:1;min-width:0">
+          <div class="user-name" id="user-name-sb">Admin</div>
+          <div class="user-role" id="user-role-sb">Administrator</div>
+        </div>
+        <button class="logout-btn" onclick="doLogout()" title="Abmelden"><i class="ti ti-logout" style="font-size:15px"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-area">
+    <div class="topbar">
+      <div class="topbar-title" id="page-title">Übersicht</div>
+      <div class="clock-display" id="clock">--:--:--</div>
+      <div id="topbar-actions"></div>
+    </div>
+    <div class="content" id="content">
+      <!-- dynamic -->
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay hidden" id="modal-setup">
+  <div class="modal">
+    <div class="modal-title">Veranstaltung</div>
+    <div class="form-row"><label class="form-label">Name</label><input type="text" id="setup-name" placeholder="z.B. Sommerfestival 2025"></div>
+    <div class="form-row"><label class="form-label">Ort / Bühne</label><input type="text" id="setup-venue" placeholder="z.B. Stadtbühne Mitte"></div>
+    <div class="form-row"><label class="form-label">Datum</label><input type="date" id="setup-date"></div>
+    <div class="modal-btns">
+      <button class="btn" onclick="closeModal('modal-setup')">Abbrechen</button>
+      <button class="btn btn-primary" onclick="saveSetup()"><i class="ti ti-check"></i> Speichern</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-artist">
+  <div class="modal">
+    <div class="modal-title" id="artist-modal-title">Person hinzufügen</div>
+    <div class="form-row"><label class="form-label">Name</label><input type="text" id="a-name" placeholder="Vollständiger Name"></div>
+    <div class="form-row"><label class="form-label">Rolle / Funktion</label><input type="text" id="a-role" placeholder="z.B. Hauptact, Moderator, FOH-Techniker"></div>
+    <div class="form-row"><label class="form-label">Status</label>
+      <select id="a-status">
+        <option value="pending">Ausstehend</option>
+        <option value="confirmed">Bestätigt</option>
+        <option value="late">Verspätet</option>
+        <option value="checked">Anwesend</option>
+      </select>
+    </div>
+    <div class="form-row"><label class="form-label">Notiz</label><textarea id="a-note" placeholder="Optional…"></textarea></div>
+    <input type="hidden" id="a-edit-id">
+    <div class="modal-btns">
+      <button class="btn" onclick="closeModal('modal-artist')">Abbrechen</button>
+      <button class="btn btn-primary" onclick="saveArtist()"><i class="ti ti-check"></i> Speichern</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-slot">
+  <div class="modal">
+    <div class="modal-title" id="slot-modal-title">Slot hinzufügen</div>
+    <div class="form-row"><label class="form-label">Titel</label><input type="text" id="sl-title" placeholder="z.B. Soundcheck Band A"></div>
+    <div class="form-2col">
+      <div class="form-row"><label class="form-label">Uhrzeit</label><input type="time" id="sl-time"></div>
+      <div class="form-row"><label class="form-label">Dauer</label><input type="text" id="sl-dur" placeholder="45 min"></div>
+    </div>
+    <div class="form-row"><label class="form-label">Typ</label>
+      <select id="sl-type">
+        <option value="probe">Probe</option>
+        <option value="show">Show</option>
+        <option value="technik">Technik</option>
+        <option value="pause">Pause</option>
+      </select>
+    </div>
+    <div class="form-row"><label class="form-label">Beteiligte (Komma-getrennt)</label><input type="text" id="sl-people" placeholder="z.B. Band A, FOH-Techniker"></div>
+    <div class="form-row"><label class="form-label">Notiz</label><textarea id="sl-note" placeholder="Optional…" style="min-height:48px"></textarea></div>
+    <input type="hidden" id="sl-edit-id">
+    <div class="modal-btns">
+      <button class="btn" onclick="closeModal('modal-slot')">Abbrechen</button>
+      <button class="btn btn-primary" onclick="saveSlot()"><i class="ti ti-check"></i> Speichern</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-slot-detail">
+  <div class="modal">
+    <div class="modal-title" id="sd-title"></div>
+    <div id="sd-body" style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:4px"></div>
+    <div class="modal-btns">
+      <button class="btn btn-danger btn-sm" onclick="deleteSlotCurrent()"><i class="ti ti-trash"></i></button>
+      <button class="btn btn-sm" onclick="editSlotCurrent()"><i class="ti ti-edit"></i> Bearbeiten</button>
+      <button class="btn btn-primary btn-sm" onclick="toggleDoneCurrent()"><i class="ti ti-check"></i> Erledigt</button>
+      <button class="btn btn-sm" onclick="closeModal('modal-slot-detail')">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-account">
+  <div class="modal">
+    <div class="modal-title" id="acc-modal-title">Account erstellen</div>
+    <div class="form-row"><label class="form-label">Benutzername</label><input type="text" id="acc-user" placeholder="z.B. jana.mueller"></div>
+    <div class="form-row"><label class="form-label">Passwort</label><input type="password" id="acc-pass" placeholder="Sicheres Passwort"></div>
+    <div class="form-row"><label class="form-label">Anzeigename</label><input type="text" id="acc-display" placeholder="z.B. Jana Müller"></div>
+    <div class="form-row"><label class="form-label">Rolle / Funktion</label><input type="text" id="acc-role" placeholder="z.B. FOH-Techniker, Künstler"></div>
+    <div class="form-row"><label class="form-label">Berechtigungsstufe</label>
+      <select id="acc-level">
+        <option value="crew">Crew (nur eigener Plan + Chat)</option>
+        <option value="stage">Stage Manager (Check-in + Ablauf)</option>
+        <option value="admin">Administrator (Vollzugriff)</option>
+      </select>
+    </div>
+    <div class="form-row"><label class="form-label">Verknüpfte Person (Check-in)</label>
+      <select id="acc-artist"></select>
+    </div>
+    <input type="hidden" id="acc-edit-id">
+    <div class="modal-btns">
+      <button class="btn" onclick="closeModal('modal-account')">Abbrechen</button>
+      <button class="btn btn-primary" onclick="saveAccount()"><i class="ti ti-check"></i> Speichern</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-shift">
+  <div class="modal">
+    <div class="modal-title" id="shift-modal-title">Schicht hinzufügen</div>
+    <div class="form-row"><label class="form-label">Person</label><select id="sh-person"></select></div>
+    <div class="form-row"><label class="form-label">Beschreibung</label><input type="text" id="sh-title" placeholder="z.B. Bühnenaufbau, Einlass, Soundcheck"></div>
+    <div class="form-2col">
+      <div class="form-row"><label class="form-label">Von</label><input type="time" id="sh-from"></div>
+      <div class="form-row"><label class="form-label">Bis</label><input type="time" id="sh-to"></div>
+    </div>
+    <div class="form-row"><label class="form-label">Typ</label>
+      <select id="sh-type">
+        <option value="probe">Probe</option>
+        <option value="show">Show</option>
+        <option value="technik">Technik / Setup</option>
+        <option value="pause">Pause</option>
+      </select>
+    </div>
+    <div class="form-row"><label class="form-label">Notiz</label><input type="text" id="sh-note" placeholder="Optional…"></div>
+    <input type="hidden" id="sh-edit-id">
+    <div class="modal-btns">
+      <button class="btn" onclick="closeModal('modal-shift')">Abbrechen</button>
+      <button class="btn btn-primary" onclick="saveShift()"><i class="ti ti-check"></i> Speichern</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SK = 'sm_v3';
+let S = {show:{name:'',venue:'',date:''},artists:[],slots:[],msgs:[],accounts:[],shifts:[]};
+let currentUser = null;
+let currentSlotId = null;
+let currentPage = 'dash';
+let unreadMsgs = 0;
+let lastMsgCount = 0;
+
+function saveState() { try { localStorage.setItem(SK, JSON.stringify(S)); } catch(e){} }
+function loadState() { try { const d=localStorage.getItem(SK); if(d) S=JSON.parse(d); } catch(e){} }
+
+loadState();
+
+// Ensure default admin exists
+if (!S.accounts || S.accounts.length === 0) {
+  S.accounts = [{id:'admin',username:'admin',password:'admin',display:'Administrator',role:'Admin',level:'admin',artistId:null}];
+  saveState();
+}
+if (!S.shifts) { S.shifts = []; saveState(); }
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function nowTime() { return new Date().toTimeString().slice(0,5); }
+function nowTs() { return new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}); }
+function initials(n) { return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+
+function avClass(s) { return {checked:'av-green',confirmed:'av-amber',late:'av-red',pending:'av-gray'}[s]||'av-gray'; }
+function pillClass(s) { return {checked:'pill-green',confirmed:'pill-amber',late:'pill-red',pending:'pill-gray'}[s]||'pill-gray'; }
+function pillLabel(s) { return {checked:'Anwesend',confirmed:'Bestätigt',late:'Verspätet',pending:'Ausstehend'}[s]||s; }
+function typeLabel(t) { return {probe:'Probe',show:'Show',technik:'Technik',pause:'Pause'}[t]||t; }
+function dotColor(t) { return {probe:'#7B3FE4',show:'#18A469',technik:'#D97A0A',pause:'#9090A8'}[t]||'#aaa'; }
+function tagClass(t) { return {probe:'tag-probe',show:'tag-show',technik:'tag-technik',pause:'tag-pause'}[t]||''; }
+function levelLabel(l) { return {admin:'Administrator',stage:'Stage Manager',crew:'Crew'}[l]||l; }
+function levelPill(l) { return {admin:'pill-red',stage:'pill-blue',crew:'pill-gray'}[l]||'pill-gray'; }
+
+function can(perm) {
+  if (!currentUser) return false;
+  if (currentUser.level === 'admin') return true;
+  if (currentUser.level === 'stage') return ['checkin','runsheet','chat','dash','myplan'].includes(perm);
+  if (currentUser.level === 'crew') return ['chat','myplan','dash'].includes(perm);
+  return false;
+}
+
+// LOGIN
+function doLogin() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  const acc = S.accounts.find(a => a.username === u && a.password === p);
+  if (!acc) {
+    const e = document.getElementById('login-error');
+    e.textContent = 'Falscher Benutzername oder Passwort.';
+    e.classList.remove('hidden');
+    return;
+  }
+  currentUser = acc;
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  initApp();
+}
+function doLogout() {
+  currentUser = null;
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-error').classList.add('hidden');
+}
+
+function initApp() {
+  document.getElementById('user-name-sb').textContent = currentUser.display || currentUser.username;
+  document.getElementById('user-role-sb').textContent = levelLabel(currentUser.level);
+  document.getElementById('user-av-sb').textContent = initials(currentUser.display || currentUser.username);
+
+  // Show/hide nav items by permission
+  document.getElementById('nav-accounts').style.display = currentUser.level === 'admin' ? '' : 'none';
+  document.getElementById('nav-personal').style.display = can('checkin') ? '' : 'none';
+  document.getElementById('nav-myplan').style.display = '';
+
+  updateSidebar();
+  nav('dash', document.querySelector('.nav-item'));
+  startClock();
+  startSync();
+}
+
+function updateSidebar() {
+  document.getElementById('sb-show-name').textContent = S.show.name || 'Stage Manager';
+  document.getElementById('sb-show-venue').textContent = S.show.venue || '—';
+  if (S.show.name) {
+    document.getElementById('setup-name').value = S.show.name;
+    document.getElementById('setup-venue').value = S.show.venue || '';
+    document.getElementById('setup-date').value = S.show.date || '';
+  }
+}
+
+function nav(page, btn) {
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const titles = {dash:'Übersicht',checkin:'Check-in',runsheet:'Ablaufplan',myplan:'Mein Plan',crew:'Crew-Chat',personal:'Personalplan',accounts:'Accounts'};
+  document.getElementById('page-title').textContent = titles[page] || page;
+  render(page);
+}
+
+function render(page) {
+  const c = document.getElementById('content');
+  if (page === 'dash') c.innerHTML = renderDash();
+  else if (page === 'checkin') c.innerHTML = renderCheckin();
+  else if (page === 'runsheet') c.innerHTML = renderRunsheet();
+  else if (page === 'myplan') c.innerHTML = renderMyPlan();
+  else if (page === 'crew') { c.innerHTML = renderChat(); setupChatListeners(); }
+  else if (page === 'personal') c.innerHTML = renderPersonal();
+  else if (page === 'accounts') c.innerHTML = renderAccounts();
+  setTopbarActions(page);
+}
+
+function setTopbarActions(page) {
+  const el = document.getElementById('topbar-actions');
+  if (page === 'checkin' && can('checkin')) el.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddArtist()"><i class="ti ti-plus"></i> Hinzufügen</button>`;
+  else if (page === 'runsheet' && can('runsheet')) el.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddSlot()"><i class="ti ti-plus"></i> Slot hinzufügen</button>`;
+  else if (page === 'accounts' && currentUser.level === 'admin') el.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddAccount()"><i class="ti ti-plus"></i> Account erstellen</button>`;
+  else if (page === 'personal' && can('checkin')) el.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddShift()"><i class="ti ti-plus"></i> Schicht hinzufügen</button>`;
+  else el.innerHTML = '';
+}
+
+// DASHBOARD
+function renderDash() {
+  const checked = S.artists.filter(a=>a.status==='checked').length;
+  const late = S.artists.filter(a=>a.status==='late').length;
+  const done = S.slots.filter(s=>s.done).length;
+  const next = [...S.slots].filter(s=>!s.done).sort((a,b)=>a.time.localeCompare(b.time))[0];
+  const nextBlock = next
+    ? `<div class="next-block"><div class="next-icon"><i class="ti ti-player-play"></i></div><div><div class="next-label">Nächster Punkt</div><div class="next-title">${next.title}</div><div class="next-meta">${next.time}${next.dur?' · '+next.dur:''}${next.people?' · '+next.people:''}</div></div></div>`
+    : `<div class="next-block" style="border-left-color:var(--border2)"><div class="next-icon" style="background:var(--surface2);color:var(--text3)"><i class="ti ti-check"></i></div><div><div class="next-label" style="color:var(--text3)">Ablaufplan</div><div class="next-title" style="color:var(--text3)">${S.slots.length ? 'Alle Punkte erledigt' : 'Noch keine Slots angelegt'}</div></div></div>`;
+  const artistList = S.artists.slice(0,6).map(a=>`<div class="a-row"><div class="av ${avClass(a.status)}">${initials(a.name)}</div><div class="a-info"><div class="a-name">${a.name}</div><div class="a-sub">${a.role||'–'}</div></div><span class="pill ${pillClass(a.status)}">${pillLabel(a.status)}</span></div>`).join('') || `<div class="empty"><i class="ti ti-users"></i><p>Noch keine Personen</p></div>`;
+  const recentMsgs = S.msgs.slice(-4).reverse().map(m=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:8px 10px;margin-bottom:6px"><div style="display:flex;justify-content:space-between;margin-bottom:1px"><span style="font-size:12px;font-weight:600;color:${m.urgent?'var(--red-text)':'var(--text)'}">${m.sender}</span><span style="font-size:10px;color:var(--text3);font-family:var(--mono)">${m.time}</span></div><div style="font-size:12px;color:var(--text2)">${m.text}</div></div>`).join('') || `<div class="empty" style="padding:20px"><i class="ti ti-message-off"></i><p>Keine Nachrichten</p></div>`;
+  return `
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-label">Anwesend</div><div class="stat-value" style="color:var(--green)">${checked}<span style="font-size:16px;color:var(--text3)">/${S.artists.length}</span></div><div class="stat-sub">Personen eingecheckt</div></div>
+    <div class="stat-card"><div class="stat-label">Verspätet</div><div class="stat-value" style="color:${late>0?'var(--red)':'var(--text3)'}">${late}</div><div class="stat-sub">Person(en)</div></div>
+    <div class="stat-card"><div class="stat-label">Ablauf</div><div class="stat-value">${done}<span style="font-size:16px;color:var(--text3)">/${S.slots.length}</span></div><div class="stat-sub">Slots erledigt</div></div>
+    <div class="stat-card"><div class="stat-label">Nachrichten</div><div class="stat-value" style="color:var(--accent)">${S.msgs.length}</div><div class="stat-sub">heute</div></div>
+  </div>
+  ${nextBlock}
+  <div class="two-col">
+    <div><div class="sec-head"><span class="sec-title">Personen</span></div>${artistList}</div>
+    <div><div class="sec-head"><span class="sec-title">Letzte Meldungen</span></div>${recentMsgs}</div>
+  </div>`;
+}
+
+// CHECK-IN
+function renderCheckin() {
+  return `<div class="search-row"><input type="text" id="ci-search" placeholder="Suchen…" oninput="filterAndRenderCI()"><div id="ci-count" style="font-size:12px;color:var(--text3);white-space:nowrap">${S.artists.length} Personen</div></div><div id="ci-list">${ciList('')}</div>`;
+}
+function ciList(q) {
+  const list = q ? S.artists.filter(a=>a.name.toLowerCase().includes(q.toLowerCase())||((a.role||'').toLowerCase().includes(q.toLowerCase()))) : S.artists;
+  if (!list.length) return `<div class="empty"><i class="ti ti-user-search"></i><p>${q ? 'Keine Treffer' : 'Noch keine Personen — oben hinzufügen'}</p></div>`;
+  return list.map(a=>`<div class="ci-item ${a.status==='checked'?'checked':''}">
+    <div class="av ${avClass(a.status)}" style="width:36px;height:36px;font-size:12px">${initials(a.name)}</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:14px;font-weight:500">${a.name}</div>
+      <div style="font-size:11px;color:var(--text3)">${a.role||''}${a.note?' · '+a.note:''}</div>
+    </div>
+    ${a.checkinTime?`<span class="ci-time">${a.checkinTime}</span>`:''}
+    <span class="pill ${pillClass(a.status)}">${pillLabel(a.status)}</span>
+    <button class="check-toggle ${a.status==='checked'?'on':''}" onclick="toggleCheckin('${a.id}')" title="Check-in"><i class="ti ti-check" style="font-size:13px"></i></button>
+    ${can('checkin')?`<button class="btn btn-ghost btn-sm" onclick="editArtist('${a.id}')"><i class="ti ti-edit" style="font-size:13px"></i></button><button class="btn btn-danger btn-sm btn-ghost" onclick="deleteArtist('${a.id}')"><i class="ti ti-trash" style="font-size:13px"></i></button>`:''}
+  </div>`).join('');
+}
+function filterAndRenderCI() {
+  const q = document.getElementById('ci-search')?.value||'';
+  const el = document.getElementById('ci-list');
+  if (el) el.innerHTML = ciList(q);
+}
+function openAddArtist() {
+  document.getElementById('a-edit-id').value = '';
+  document.getElementById('artist-modal-title').textContent = 'Person hinzufügen';
+  ['a-name','a-role','a-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('a-status').value = 'pending';
+  openModal('modal-artist');
+}
+function editArtist(id) {
+  const a = S.artists.find(x=>x.id===id); if(!a) return;
+  document.getElementById('a-edit-id').value = id;
+  document.getElementById('artist-modal-title').textContent = 'Person bearbeiten';
+  document.getElementById('a-name').value = a.name;
+  document.getElementById('a-role').value = a.role||'';
+  document.getElementById('a-status').value = a.status;
+  document.getElementById('a-note').value = a.note||'';
+  openModal('modal-artist');
+}
+function deleteArtist(id) {
+  if (!confirm('Person wirklich löschen?')) return;
+  S.artists = S.artists.filter(x=>x.id!==id);
+  saveState(); renderCurrentPage();
+}
+function saveArtist() {
+  const name = document.getElementById('a-name').value.trim(); if(!name) return;
+  const id = document.getElementById('a-edit-id').value || uid();
+  const existing = S.artists.find(x=>x.id===id);
+  const obj = { id, name, role: document.getElementById('a-role').value.trim(), status: document.getElementById('a-status').value, note: document.getElementById('a-note').value.trim(), checkinTime: existing?.checkinTime||null };
+  if (obj.status==='checked' && !obj.checkinTime) obj.checkinTime = nowTime();
+  if (existing) { const i=S.artists.findIndex(x=>x.id===id); S.artists[i]=obj; } else S.artists.push(obj);
+  closeModal('modal-artist'); saveState(); renderCurrentPage();
+}
+function toggleCheckin(id) {
+  const a = S.artists.find(x=>x.id===id); if(!a) return;
+  if (a.status==='checked') { a.status='confirmed'; a.checkinTime=null; } else { a.status='checked'; a.checkinTime=nowTime(); }
+  sysMsg(a.status==='checked'?`✓ ${a.name} eingecheckt (${a.checkinTime})`:`${a.name} ausgecheckt`);
+  saveState(); renderCurrentPage();
+}
+
+// RUNSHEET
+function renderRunsheet() {
+  const slots = [...S.slots].sort((a,b)=>a.time.localeCompare(b.time));
+  if (!slots.length) return `<div class="empty"><i class="ti ti-calendar-off"></i><p>Noch keine Slots — oben hinzufügen</p></div>`;
+  return slots.map((s,i)=>{
+    const isLast = i===slots.length-1;
+    const tags = [typeLabel(s.type), ...(s.people?s.people.split(',').map(p=>p.trim()).filter(Boolean).slice(0,2):[])];
+    return `<div class="rs-row">
+      <div class="rs-time">${s.time}</div>
+      <div class="rs-gutter"><div class="rs-dot tag-dot-${s.type}" style="background:${dotColor(s.type)};${s.done?'opacity:0.3':''}"></div>${!isLast?'<div class="rs-line"></div>':''}</div>
+      <div class="rs-card ${s.active&&!s.done?'rs-active':''} ${s.done?'rs-done':''}" onclick="openSlotDetail('${s.id}')">
+        <div class="rs-head"><span class="rs-title">${s.title}</span><span class="rs-dur">${s.dur||''}</span></div>
+        <div class="rs-tags">${tags.map(t=>`<span class="rs-tag ${tagClass(s.type)}">${t}</span>`).join('')}</div>
+        ${s.note?`<div style="font-size:11px;color:var(--text3);margin-top:5px">${s.note}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function openAddSlot() {
+  document.getElementById('sl-edit-id').value='';
+  document.getElementById('slot-modal-title').textContent='Slot hinzufügen';
+  ['sl-title','sl-dur','sl-people','sl-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('sl-time').value='';
+  document.getElementById('sl-type').value='probe';
+  openModal('modal-slot');
+}
+function openSlotDetail(id) {
+  const s=S.slots.find(x=>x.id===id); if(!s) return;
+  currentSlotId=id;
+  document.getElementById('sd-title').textContent=s.title;
+  document.getElementById('sd-body').innerHTML=`<b>${s.time}${s.dur?' · '+s.dur:''}</b> · <span class="pill ${tagClass(s.type)}" style="font-size:11px">${typeLabel(s.type)}</span>${s.people?`<br><span style="color:var(--text3)">Beteiligte:</span> ${s.people}`:''}${s.note?`<br><span style="color:var(--text3)">Notiz:</span> ${s.note}`:''}${s.done?`<br><span style="color:var(--green-text)">✓ Erledigt</span>`:''}`;
+  openModal('modal-slot-detail');
+}
+function deleteSlotCurrent() {
+  if(!currentSlotId || !confirm('Slot löschen?')) return;
+  S.slots=S.slots.filter(x=>x.id!==currentSlotId); closeModal('modal-slot-detail'); saveState(); renderCurrentPage();
+}
+function editSlotCurrent() {
+  const s=S.slots.find(x=>x.id===currentSlotId); if(!s) return;
+  document.getElementById('sl-edit-id').value=s.id;
+  document.getElementById('slot-modal-title').textContent='Slot bearbeiten';
+  document.getElementById('sl-title').value=s.title;
+  document.getElementById('sl-time').value=s.time;
+  document.getElementById('sl-dur').value=s.dur||'';
+  document.getElementById('sl-type').value=s.type;
+  document.getElementById('sl-people').value=s.people||'';
+  document.getElementById('sl-note').value=s.note||'';
+  closeModal('modal-slot-detail'); openModal('modal-slot');
+}
+function toggleDoneCurrent() {
+  const s=S.slots.find(x=>x.id===currentSlotId); if(!s) return;
+  s.done=!s.done; s.active=false;
+  const next=[...S.slots].filter(x=>!x.done).sort((a,b)=>a.time.localeCompare(b.time))[0];
+  if(next) next.active=true;
+  sysMsg(s.done?`✓ Erledigt: ${s.title}`:`Zurückgesetzt: ${s.title}`);
+  closeModal('modal-slot-detail'); saveState(); renderCurrentPage();
+}
+function saveSlot() {
+  const title=document.getElementById('sl-title').value.trim(); if(!title) return;
+  const id=document.getElementById('sl-edit-id').value||uid();
+  const existing=S.slots.find(x=>x.id===id);
+  const obj={id,title,time:document.getElementById('sl-time').value||'00:00',dur:document.getElementById('sl-dur').value.trim(),type:document.getElementById('sl-type').value,people:document.getElementById('sl-people').value.trim(),note:document.getElementById('sl-note').value.trim(),done:existing?.done||false,active:existing?.active||false};
+  if(existing){const i=S.slots.findIndex(x=>x.id===id);S.slots[i]=obj;}else S.slots.push(obj);
+  closeModal('modal-slot'); saveState(); renderCurrentPage();
+}
+
+// MY PLAN
+function renderMyPlan() {
+  const acc = currentUser;
+  const artistId = acc.artistId;
+  const myShifts = S.shifts.filter(sh=>sh.personId===acc.id).sort((a,b)=>a.from.localeCompare(b.from));
+  const linkedArtist = artistId ? S.artists.find(a=>a.id===artistId) : null;
+  const mySlots = linkedArtist ? S.slots.filter(s=>s.people&&s.people.toLowerCase().includes(linkedArtist.name.toLowerCase())).sort((a,b)=>a.time.localeCompare(b.time)) : [];
+  const shiftHtml = myShifts.length ? myShifts.map(sh=>`
+    <div class="shift-item">
+      <span class="rs-tag ${tagClass(sh.type)}" style="font-size:10px;border-radius:10px;padding:2px 7px">${typeLabel(sh.type)}</span>
+      <span class="shift-time">${sh.from} – ${sh.to}</span>
+      <span class="shift-title">${sh.title}</span>
+      ${sh.note?`<span style="font-size:11px;color:var(--text3)">${sh.note}</span>`:''}
+    </div>`).join('') : `<div class="empty" style="padding:16px"><i class="ti ti-calendar-off"></i><p>Keine Schichten zugewiesen</p></div>`;
+  const slotsHtml = mySlots.length ? mySlots.map(s=>`
+    <div class="shift-item ${s.done?'':''}">
+      <span class="rs-tag ${tagClass(s.type)}" style="font-size:10px;border-radius:10px;padding:2px 7px">${typeLabel(s.type)}</span>
+      <span class="shift-time">${s.time}${s.dur?' ('+s.dur+')':''}</span>
+      <span class="shift-title">${s.title}${s.done?' <span style="color:var(--green-text);font-size:11px">✓</span>':''}</span>
+    </div>`).join('') : `<div style="font-size:13px;color:var(--text3);padding:8px 0">Keine Ablaufplan-Einträge für dich gefunden.</div>`;
+  const statusInfo = linkedArtist ? `<span class="pill ${pillClass(linkedArtist.status)}">${pillLabel(linkedArtist.status)}</span>${linkedArtist.checkinTime?`<span style="font-size:11px;color:var(--text3);margin-left:6px">eingecheckt ${linkedArtist.checkinTime}</span>`:''}` : '';
+  return `
+  <div class="card" style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="av av-blue" style="width:44px;height:44px;font-size:15px">${initials(acc.display||acc.username)}</div>
+      <div><div style="font-size:16px;font-weight:600">${acc.display||acc.username}</div><div style="font-size:12px;color:var(--text3)">${acc.role||levelLabel(acc.level)}</div></div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:6px">${statusInfo}</div>
+    </div>
+    ${linkedArtist ? `<div style="margin-top:10px;font-size:12px;color:var(--text3)">Verknüpfte Person: <b>${linkedArtist.name}</b></div>` : ''}
+  </div>
+  <div class="sec-head"><span class="sec-title">Meine Schichten (Personalplan)</span></div>
+  ${shiftHtml}
+  <div class="sec-head" style="margin-top:14px"><span class="sec-title">Meine Ablaufplan-Einträge</span></div>
+  ${slotsHtml}`;
+}
+
+// CHAT
+function renderChat() {
+  const msgs = S.msgs.map(m=>`<div class="chat-msg ${m.urgent?'urgent':''} ${m.system?'system':''}">
+    <div class="chat-msg-head"><span class="chat-msg-sender">${m.sender}</span><span class="chat-msg-time">${m.time}</span>${m.urgent?`<span class="pill pill-red" style="font-size:10px;padding:1px 6px">Dringend</span>`:''}</div>
+    <div class="chat-msg-text">${m.text}</div>
+  </div>`).join('') || `<div style="text-align:center;padding:30px;color:var(--text3);font-size:13px">Noch keine Nachrichten</div>`;
+  return `<div class="chat-wrap">
+    <div class="chat-head">
+      <span style="font-size:13px;font-weight:600">Crew-Kanal</span>
+      <span class="chat-online"><span class="chat-dot"></span> Live</span>
+    </div>
+    <div class="chat-name-row"><i class="ti ti-user" style="font-size:13px;color:var(--text3)"></i><input type="text" id="chat-sender" value="${currentUser.display||currentUser.username}" placeholder="Dein Name"></div>
+    <div class="chat-msgs" id="chat-msgs">${msgs}</div>
+    <div class="chat-input-row">
+      <input type="text" id="chat-input" placeholder="Nachricht eingeben…">
+      <button class="urgency-btn" onclick="sendMsg(true)" title="Dringend"><i class="ti ti-alert-triangle"></i></button>
+      <button class="btn btn-primary btn-sm" onclick="sendMsg(false)"><i class="ti ti-send"></i></button>
+    </div>
+  </div>
+  <div style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center">Mehrere Browser-Tabs synchronisieren sich automatisch.</div>`;
+}
+function setupChatListeners() {
+  const input = document.getElementById('chat-input');
+  if (input) input.addEventListener('keydown', e=>{ if(e.key==='Enter') sendMsg(false); });
+  scrollChat();
+}
+function scrollChat() { const m=document.getElementById('chat-msgs'); if(m) m.scrollTop=m.scrollHeight; }
+function sendMsg(urgent) {
+  const input=document.getElementById('chat-input'); if(!input) return;
+  const text=input.value.trim(); if(!text) return;
+  const sender=document.getElementById('chat-sender')?.value.trim()||currentUser.display||currentUser.username;
+  S.msgs.push({id:uid(),sender,text,time:nowTs(),urgent:!!urgent,system:false});
+  input.value=''; saveState();
+  if(currentPage==='crew') { document.getElementById('content').innerHTML=renderChat(); setupChatListeners(); }
+  else renderBadge();
+}
+function sysMsg(text) {
+  S.msgs.push({id:uid(),sender:'System',text,time:nowTs(),urgent:false,system:true});
+}
+function renderBadge() {
+  const badge=document.getElementById('nav-badge');
+  if(!badge) return;
+  if(S.msgs.length>0){badge.textContent=S.msgs.length;badge.classList.remove('hidden');}
+  else badge.classList.add('hidden');
+}
+
+// PERSONAL PLAN
+function renderPersonal() {
+  if (!S.artists.length) return `<div class="empty"><i class="ti ti-users-group"></i><p>Zuerst Personen im Check-in hinzufügen</p></div>`;
+  return S.artists.map(a=>{
+    const shifts=S.shifts.filter(sh=>sh.artistId===a.id).sort((a,b)=>a.from.localeCompare(b.from));
+    const acc=S.accounts.find(ac=>ac.artistId===a.id);
+    return `<div class="person-card">
+      <div class="person-card-head">
+        <div class="av ${avClass(a.status)}">${initials(a.name)}</div>
+        <div style="flex:1"><div style="font-size:14px;font-weight:500">${a.name}</div><div style="font-size:11px;color:var(--text3)">${a.role||'–'}${acc?` · <span style="color:var(--accent-text)">@${acc.username}</span>`:''}</div></div>
+        <span class="pill ${pillClass(a.status)}">${pillLabel(a.status)}</span>
+        <button class="btn btn-sm" onclick="openAddShiftFor('${a.id}')"><i class="ti ti-plus"></i> Schicht</button>
+      </div>
+      <div class="person-card-body">
+        ${shifts.length?shifts.map(sh=>`
+          <div class="shift-item">
+            <span class="rs-tag ${tagClass(sh.type)}" style="font-size:10px;border-radius:10px;padding:2px 7px">${typeLabel(sh.type)}</span>
+            <span class="shift-time">${sh.from} – ${sh.to}</span>
+            <span class="shift-title">${sh.title}</span>
+            ${sh.note?`<span style="font-size:11px;color:var(--text3)">${sh.note}</span>`:''}
+            <button class="btn btn-ghost btn-sm" onclick="deleteShift('${sh.id}')"><i class="ti ti-trash" style="font-size:12px;color:var(--text3)"></i></button>
+          </div>`).join(''):`<div style="font-size:12px;color:var(--text3);padding:4px 0">Noch keine Schichten geplant.</div>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+function openAddShift() {
+  populateShiftPersonSelect(null);
+  document.getElementById('sh-edit-id').value='';
+  document.getElementById('shift-modal-title').textContent='Schicht hinzufügen';
+  ['sh-title','sh-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('sh-from').value=''; document.getElementById('sh-to').value='';
+  document.getElementById('sh-type').value='technik';
+  openModal('modal-shift');
+}
+function openAddShiftFor(artistId) {
+  populateShiftPersonSelect(artistId);
+  document.getElementById('sh-edit-id').value='';
+  document.getElementById('shift-modal-title').textContent='Schicht hinzufügen';
+  ['sh-title','sh-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('sh-from').value=''; document.getElementById('sh-to').value='';
+  document.getElementById('sh-type').value='technik';
+  openModal('modal-shift');
+}
+function populateShiftPersonSelect(selectedId) {
+  const sel=document.getElementById('sh-person');
+  sel.innerHTML=S.artists.map(a=>`<option value="${a.id}" ${a.id===selectedId?'selected':''}>${a.name}${a.role?' – '+a.role:''}</option>`).join('');
+}
+function saveShift() {
+  const personId=document.getElementById('sh-person').value;
+  const artistId=personId;
+  const accId=S.accounts.find(ac=>ac.artistId===artistId)?.id||null;
+  const title=document.getElementById('sh-title').value.trim(); if(!title) return;
+  const id=document.getElementById('sh-edit-id').value||uid();
+  const obj={id,artistId,personId:accId||artistId,title,from:document.getElementById('sh-from').value||'00:00',to:document.getElementById('sh-to').value||'00:00',type:document.getElementById('sh-type').value,note:document.getElementById('sh-note').value.trim()};
+  const existing=S.shifts.findIndex(x=>x.id===id);
+  if(existing>-1) S.shifts[existing]=obj; else S.shifts.push(obj);
+  closeModal('modal-shift'); saveState(); renderCurrentPage();
+}
+function deleteShift(id) {
+  S.shifts=S.shifts.filter(x=>x.id!==id); saveState(); renderCurrentPage();
+}
+
+// ACCOUNTS
+function renderAccounts() {
+  const accs = S.accounts;
+  return `<div style="margin-bottom:12px;font-size:13px;color:var(--text2)">Accounts mit unterschiedlichen Berechtigungen verwalten. Crew-Accounts sehen nur ihren persönlichen Plan und den Crew-Chat.</div>
+  ${accs.map(a=>`<div class="account-card">
+    <div class="av av-blue" style="width:38px;height:38px;font-size:13px">${initials(a.display||a.username)}</div>
+    <div class="account-info">
+      <div class="account-name">${a.display||a.username} <span style="font-size:12px;color:var(--text3);font-weight:400">@${a.username}</span></div>
+      <div class="account-sub">${a.role||'–'}</div>
+    </div>
+    <span class="pill ${levelPill(a.level)}">${levelLabel(a.level)}</span>
+    ${a.artistId?`<span class="pill pill-gray" style="font-size:10px"><i class="ti ti-link" style="font-size:11px"></i> ${S.artists.find(x=>x.id===a.artistId)?.name||'–'}</span>`:''}
+    ${a.id!=='admin'?`<button class="btn btn-sm" onclick="editAccount('${a.id}')"><i class="ti ti-edit"></i></button><button class="btn btn-danger btn-sm btn-ghost" onclick="deleteAccount('${a.id}')"><i class="ti ti-trash"></i></button>`:'<span style="font-size:11px;color:var(--text3)">Standard</span>'}
+  </div>`).join('')}`;
+}
+function openAddAccount() {
+  document.getElementById('acc-edit-id').value='';
+  document.getElementById('acc-modal-title').textContent='Account erstellen';
+  ['acc-user','acc-pass','acc-display','acc-role'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('acc-level').value='crew';
+  populateArtistSelect(null);
+  openModal('modal-account');
+}
+function editAccount(id) {
+  const a=S.accounts.find(x=>x.id===id); if(!a) return;
+  document.getElementById('acc-edit-id').value=id;
+  document.getElementById('acc-modal-title').textContent='Account bearbeiten';
+  document.getElementById('acc-user').value=a.username;
+  document.getElementById('acc-pass').value=a.password;
+  document.getElementById('acc-display').value=a.display||'';
+  document.getElementById('acc-role').value=a.role||'';
+  document.getElementById('acc-level').value=a.level;
+  populateArtistSelect(a.artistId);
+  openModal('modal-account');
+}
+function deleteAccount(id) {
+  if(!confirm('Account wirklich löschen?')) return;
+  S.accounts=S.accounts.filter(x=>x.id!==id); saveState(); renderCurrentPage();
+}
+function populateArtistSelect(selectedId) {
+  const sel=document.getElementById('acc-artist');
+  sel.innerHTML=`<option value="">— Keine Verknüpfung —</option>`+S.artists.map(a=>`<option value="${a.id}" ${a.id===selectedId?'selected':''}>${a.name}${a.role?' – '+a.role:''}</option>`).join('');
+}
+function saveAccount() {
+  const username=document.getElementById('acc-user').value.trim(); if(!username) return;
+  const password=document.getElementById('acc-pass').value; if(!password) return;
+  const editId=document.getElementById('acc-edit-id').value;
+  const id=editId||uid();
+  if(!editId && S.accounts.find(a=>a.username===username)) { alert('Benutzername bereits vergeben.'); return; }
+  const obj={id,username,password,display:document.getElementById('acc-display').value.trim(),role:document.getElementById('acc-role').value.trim(),level:document.getElementById('acc-level').value,artistId:document.getElementById('acc-artist').value||null};
+  if(editId){const i=S.accounts.findIndex(x=>x.id===editId);S.accounts[i]=obj;}else S.accounts.push(obj);
+  // Update shifts link
+  S.shifts.forEach(sh=>{ if(sh.artistId===obj.artistId) sh.personId=obj.id; });
+  closeModal('modal-account'); saveState(); renderCurrentPage();
+}
+
+// SETUP
+function saveSetup() {
+  S.show.name=document.getElementById('setup-name').value.trim();
+  S.show.venue=document.getElementById('setup-venue').value.trim();
+  S.show.date=document.getElementById('setup-date').value;
+  closeModal('modal-setup'); saveState(); updateSidebar();
+}
+
+// UTILS
+function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+function renderCurrentPage() { render(currentPage); }
+
+function startClock() {
+  function tick() {
+    const d=new Date();
+    const el=document.getElementById('clock');
+    if(el) el.textContent=d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }
+  tick(); setInterval(tick,1000);
+}
+
+function startSync() {
+  window.addEventListener('storage', e=>{
+    if(e.key===SK && e.newValue) {
+      try { S=JSON.parse(e.newValue); renderCurrentPage(); renderBadge(); updateSidebar(); } catch(err){}
+    }
+  });
+}
+</script>
+</body>
+</html>
